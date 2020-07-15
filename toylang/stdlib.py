@@ -18,6 +18,29 @@ class Mul:
         return V
 Globals["*"] = Mul()
 
+class Sub:
+    def Call(s, *Args):
+        V = Args[0]
+        for x in Args[1:]:
+            V -= x
+        return V
+Globals["-"] = Sub()
+
+class LT:
+    def Call(s, A, B):
+        return A < B
+Globals["<"] = LT()
+
+class Mod:
+    def Call(s, A, B):
+        return A % B
+Globals["%"] = Mod()
+
+class Not:
+    def Call(s, A):
+        return not A
+Globals["~"] = Not()
+
 class Symbol(str):
     def __repr__(s):
         return f'Symbol({eval(super().__repr__())})'
