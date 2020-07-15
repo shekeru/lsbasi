@@ -31,6 +31,11 @@ class LT:
         return A < B
 Globals["<"] = LT()
 
+class EQ:
+    def Call(s, A, B):
+        return A == B
+Globals["="] = EQ()
+
 class Mod:
     def Call(s, A, B):
         return A % B

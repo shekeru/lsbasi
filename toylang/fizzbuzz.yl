@@ -1,0 +1,26 @@
+$def fizzb (x) {
+  set! f3 (% x 3)
+  set! f5 (% x 5)
+  $if (~ (+ f5 f3)) {
+    puts "FizzBuzz"
+  }
+  $else {
+    $if (~ f3) {
+      puts "Fizz"
+    }
+    $if (~ f5) {
+      puts "Buzz"
+    }
+    $if (< 0 (* f5 f3)) {
+      puts x
+    }
+  }
+}
+
+$def main () {
+  set! x 1
+  $while (< x 100) {
+    fizzb x
+    set! x (+ x 1)
+  }
+}

@@ -2,13 +2,13 @@ from lark import Lark, Token, Tree
 
 syntax = Lark(r"""
     start: _NL* (function)*
-    function: "$def" fname "(" param* ")" block
-    param: symbol
+    function: "$def" fname "(" params ")" block
+    params: symbol*
     fname: symbol
-    if: "$if" expr block
+    if: "$if" expr block ("$else" block)?
     while: "$while" expr block
-    block: "{" _NL stmnt* "}" _NL*
-    stmnt: (if | while | (expr+ _NL)) _NL*
+    block: "{" _NL* stmnt* _NL* "}" _NL*
+    stmnt: (if | while | (expr+ _NL))
     expr: string | integer | symbol | quote | "(" expr* ")"
     quote: "'(" expr* ")"
     symbol: /[^()\s'"$]+/
