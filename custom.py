@@ -23,8 +23,11 @@ def Parse(Ln):
             else:
                 return
 
-def Eval(A, Op, B):
-    return Forms[Op](A, B)
+def Eval(A, Op, B, *More):
+    V = Forms[Op](A, B)
+    if More:
+        return Eval(V, *More)
+    return V
 
 while True:
     try:
@@ -38,4 +41,4 @@ while True:
         Result = Eval(*Form)
         print(Result)
     except TypeError:
-        print("Invalid form")
+        print("Syntax Error")

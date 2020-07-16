@@ -28,50 +28,79 @@ def Eval(Term, Locals):
     # Statement Blocks
     if isinstance(Op, While) or isinstance(Op, If):
         return Op.Handle(Locals)
-    return Op.Call(*Exp)
-    print("Missed:", Term, Array)
-
-def Execute(Terms, Locals):
-    V = None
-    for Term in Terms:
-        V = Eval(Term, Locals)
-    return V
+    if isinstance(Op, int) and not len(Exp):
+        return Op
+    if Op is not None:
+        return Op.Call(*Exp)        
+    #print("Missed:", Term, Array)
 
 class Block:
     def __init__(s):
         s.Body = []
+        s.Vars = {}
+    def Execute(s, Terms, Locals):
+        V = None
+        s.retFlag = False
+        for Term in Terms:
+            if Term[0] == Symbol("ret!"):
+                V = Eval(Term[1:], Locals)
+                s.SignalReturn(s.Parent)
+                return V
+            V = Eval(Term, Locals)
+            if s.retFlag:
+                break
+        return V
+    def SignalReturn(s, Pr):
+        if isinstance(Pr, Function):
+            Pr.retFlag = True
+        else:
+            s.SignalReturn(Pr.Parent)
 
-class Function(Block):
+class Program(Block):
     def __init__(s):
         super().__init__()
+
+class Function(Block):
+    def __init__(s, Parent):
+        super().__init__()
+        s.Parent = Parent
         s.Params = []
     def Call(s, *Args):
         Locals = dict(zip(s.Params, Args))
-        return Execute(s.Body, Locals)
+        return s.Execute(s.Body, Locals)
 
 class While(Block):
-    def __init__(s):
+    def __init__(s, Parent):
         super().__init__()
+        s.Parent = Parent
         s.Cond = []
     def Handle(s, Locals):
         while Eval(s.Cond, Locals):
-            Execute(s.Body, Locals)
+            V = s.Execute(s.Body, Locals)
+        return V
 
 class If(Block):
-    def __init__(s):
+    def __init__(s, Parent):
         super().__init__()
+        s.Parent = Parent
         s.Cond = []
         s.Other = []
     def Handle(s, Locals):
         if Eval(s.Cond, Locals):
-            Execute(s.Body, Locals)
+            V = s.Execute(s.Body, Locals)
         else:
-            Execute(s.Other, Locals)
+            V = s.Execute(s.Other, Locals)
+        return V
             
 
 def Dispatch(Node, Env = None):
+    if Node.data == "start":
+        Env = Program()
+        for El in Node.children:
+            Dispatch(El, Env)
+        return Env
     if Node.data == "function":
-        Env = Function()
+        Env = Function(Env)
         Name, Params, Body = Node.children
         Env.Name = Dispatch(Name, Env)
         Env.Params = Dispatch(Params, Env)
@@ -85,13 +114,13 @@ def Dispatch(Node, Env = None):
         return [Dispatch(El, Env)
             for El in Node.children]
     if Node.data == "while":
-        Env = While()
+        Env = While(Env)
         Cond, Do = Node.children
         Env.Cond = Dispatch(Cond, Env)
         Env.Body = Dispatch(Do, Env)
         return Env
     if Node.data == "if":
-        Env = If()
+        Env = If(Env)
         Cond, Do, *Else = Node.children
         Env.Cond = Dispatch(Cond, Env)
         Env.Body = Dispatch(Do, Env)
@@ -121,34 +150,21 @@ def Dispatch(Node, Env = None):
     print("Missing AST:", Node.data)
 
 pp = Parse('''
-$def fizzb (x) {
-  set! f3 (% x 3)
-  set! f5 (% x 5)
-  $if (~ (+ f5 f3)) {
-    puts "FizzBuzz"
+$def fib (n) {
+  $if (= n 1) {
+    ret! 0
   }
-  $else {
-    $if (~ f3) {
-      puts "Fizz"
-    }
-    $if (~ f5) {
-      puts "Buzz"
-    }
-    $if (< 0 (* f5 f3)) {
-      puts x
-    }
+  $if (= n 2) {
+    ret! 1
   }
+  (+ (fib (- n 1)) (fib (- n 2)))
 }
   
 $def main () {
-  set! x 1
-  $while (< x 100) {
-    fizzb x
-    set! x (+ x 1)
-  }
+  puts (fib 10)
 }
 ''')
 
 #print(pp.pretty())
-[*map(Dispatch, pp.children)]
+Program = Dispatch(pp)
 Globals['main'].Call()
