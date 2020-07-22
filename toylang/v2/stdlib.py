@@ -1,53 +1,48 @@
+from structs import Block
 Globals = {}
 
-class Puts:
-    def Call(s, *Args):
+class Puts(Block):
+    def Call(s, *Args, **KW):
         return print(*Args)
 Globals["puts"] = Puts()
 
-class Add:
-    def Call(s, *Args):
+class Add(Block):
+    def Call(s, *Args, **KW):
         return sum(Args)
 Globals["+"] = Add()
 
-class Mul:
-    def Call(s, *Args):
+class Mul(Block):
+    def Call(s, *Args, **KW):
         V = 1
         for x in Args:
             V *= x
         return V
 Globals["*"] = Mul()
 
-class Sub:
-    def Call(s, *Args):
+class Sub(Block):
+    def Call(s, *Args, **KW):
         V = Args[0]
         for x in Args[1:]:
             V -= x
         return V
 Globals["-"] = Sub()
 
-class LT:
-    def Call(s, A, B):
+class LT(Block):
+    def Call(s, A, B, **KW):
         return A < B
 Globals["<"] = LT()
 
-class EQ:
-    def Call(s, A, B):
+class EQ(Block):
+    def Call(s, A, B, **KW):
         return A == B
 Globals["="] = EQ()
 
-class Mod:
-    def Call(s, A, B):
+class Mod(Block):
+    def Call(s, A, B, **KW):
         return A % B
 Globals["%"] = Mod()
 
-class Not:
-    def Call(s, A):
+class Not(Block):
+    def Call(s, A, **KW):
         return not A
 Globals["~"] = Not()
-
-class Symbol(str):
-    def __repr__(s):
-        return f'Symbol({eval(super().__repr__())})'
-    def __str__(s):
-        return repr(s)

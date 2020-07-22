@@ -1,3 +1,4 @@
+from stdlib import Globals
 from syntax import Parse
 from structs import *            
 
@@ -35,6 +36,16 @@ def Dispatch(Node, Env = None):
         if Else:
             Env.Other = Dispatch(Else[0], Env)
         return Env
+    if Node.data == "cond":
+        Env = Condition(Env)
+        Length = len(Node.children)
+        if len(Node.children) & 1:
+            Env.Other = Dispatch(Node.children[-1], Env)
+            Length -= 1
+        for X in range(0, Length, 2):
+            Env.Tests.append(Dispatch(Node.children[X], Env))
+            Env.Body.append(Dispatch(Node.children[X+1], Env))
+        return Env
     if Node.data == "block":
         return [Dispatch(El, Env) for El in Node.children]
     if Node.data == "stmnt":
@@ -56,31 +67,20 @@ def Dispatch(Node, Env = None):
     print("Missing AST:", Node.data)
 
 pp = Parse('''
-$def fizzb (x) {
-  set! f3 (% x 3)
-  set! f5 (% x 5)
-  $if (~ (+ f5 f3)) {
-    puts "FizzBuzz"
+$def fib (n) {
+$cond
+  (= n 1) {
+     0
   }
-  $else {
-    $if (~ f3) {
-      puts "Fizz"
-    }
-    $if (~ f5) {
-      puts "Buzz"
-    }
-    $if (< 0 (* f5 f3)) {
-      puts x
-    }
+  (= n 2) {
+     1
+  } $else {
+    + (fib (- n 1)) (fib (- n 2))
   }
 }
-
+  
 $def main () {
-  set! x 1
-  $while (< x 10) {
-    fizzb x
-    set! x (+ x 1)
-  }
+  puts (fib 7)
 }
 ''')
 

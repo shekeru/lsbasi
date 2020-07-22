@@ -8,10 +8,11 @@ syntax = Lark(r"""
     if: "$if" expr block ("$else" block)?
     while: "$while" expr block
     block: "{" _NL* stmnt* _NL* "}" _NL*
-    stmnt: (if | while | (expr+ _NL+))
+    cond: "$cond" _NL? (expr block)+ ("$else" block)?
+    stmnt: (if | while | cond | (expr+ _NL+))
     expr: string | integer | symbol | quote | "(" expr* ")"
     quote: "'(" expr* ")"
-    symbol: /[^()\s'"$]+/
+    symbol: /[^()\s'"$}{]+/
     string: ESCAPED_STRING
     integer: SIGNED_INT
     %import common.NEWLINE -> _NL
