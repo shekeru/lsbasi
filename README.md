@@ -1,3 +1,3 @@
 # Bored, Blog follow-along
 
-(Part 1)[https://ruslanspivak.com/lsbasi-part1/]
+Current: [https://ruslanspivak.com/lsbasi-part6/](Part 6)
