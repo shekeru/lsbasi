@@ -5,7 +5,6 @@ Forms = {
     '-': operator.sub,
     '*': operator.mul,
     '/': operator.__truediv__,
-    '%': operator.mod,
 }
 
 Lexer = [
