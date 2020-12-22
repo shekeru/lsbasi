@@ -20,40 +20,55 @@ def FunctionCall(Fn, Args, Env):
         V = Eval(Stmnt, Local)
     return V
 
-def Eval(Node, Env):
+def Eval(Node, Env, Left = False, Body = True):
     if isinstance(Node, Strict):
-        Hd, *Bdy = [Eval(x, Env) for x in Node]
+        Hd, *Bdy = [Eval(x, Env, Left, Body) for x in Node]
+        for I, K in enumerate(Bdy):
+            if Body and isinstance(K, Symbol) and '*' == K.Value[0]:
+                K.Value = K.Value[1:]; Bdy = [*Bdy[:I],
+                    *Eval(K, Env, Left, Body), *Bdy[I + 1:]]
+                break
         if callable(Hd):
             return Hd(*Bdy)
         if isinstance(Hd, tuple):
-            return FunctionCall(Hd[1](Bdy), Bdy, Env)
+            return FunctionCall(*Hd[1](Bdy), Env)
         if isinstance(Hd, Function):
             return FunctionCall(Hd, Bdy, Env)
-        return Hd
+        if not Bdy:
+            return Hd
+        return Node
     if isinstance(Node, Partial):
         if len(Node) > 1:
-            0 / 0
+            return Eval(Strict(Node), Env, Left, Body)
         return Eval(Node[0], Env)
     if isinstance(Node, Assignment):
-        Left, Right = [Eval(x, Env) for x in Node]
-        if isinstance(Right, Partial):
-            Right = Right[0]
-        Env[Left] = Right; return Right
+        LVal, RVal = Node
+        LVal = Eval(LVal, Env, True, Body)
+        RVal = Eval(RVal, Env, Left, Body)
+        if isinstance(RVal, Partial):
+            RVal = RVal[0]
+        Env[LVal] = RVal; return RVal
     if isinstance(Node, MatchFunction):
-        Options = [Eval(x, Env) for x in Node]
+        Options = [Eval(x, Env, Left, Body) for x in Node]
         def ResolveFunction(Args):
             for Func in Options:
-                Params = Func[:-1]
+                J, Params = -1, Func[:-1]
+                for I, P in enumerate(Params):
+                    if isinstance(P, Symbol) and P.Value[0] == "*":
+                        P.Value = P.Value[1:]; J = I; break
+                if J >= 0:
+                    Args[J] = Args[J:]
+                    Args = Args[:J+1]
                 for Req, Is in zip(Params, Args):
                     if not isinstance(Req, Symbol) and Req.Value != Is:
                         break
                 else:
-                    return Func
+                    return Func, Args
         return "lol", ResolveFunction
     if isinstance(Node, Function):
         return Node
     if isinstance(Node, Symbol):
-        return Env.Find(Node)
+        return Node if Left else Env.Find(Node)
     if isinstance(Node, Integer):
         return Node.Value
     if isinstance(Node, Float):

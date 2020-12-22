@@ -1,10 +1,12 @@
 show "hello world"
-print = fn x -> show x end
+also_print = print = fn *xs -> show *xs end
+wtf = res = print = fn x -> show x end "owo, wats dis"
 print "what now"
-# show (a = 42) b
+also_print "first string" wtf (x = y = 42)
+show x y
 fib =
   fn 0 -> 0
   elfn 1 -> 1
   elfn x -> add (fib (add x -1)) (fib (add x -2))
 end
-print (fib 10)
+show (fib 10)

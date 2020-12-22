@@ -151,7 +151,7 @@ def FindFunction(Tokens):
         else:
             Tokens.pop(0)
             break
-    return Composite if len(Composite) > 1 else Composite[0]
+    return Composite #if len(Composite) > 1 else Composite[0]
 
 def FindImpStrict(Tokens):
     List = Strict([])
@@ -167,15 +167,15 @@ def FindImpStrict(Tokens):
         elif isinstance(Tokens[0], Func):
             List.append(FindFunction(Tokens))
         elif isinstance(Tokens[0], Assign):
-            Tokens.pop(0); V = [List.pop(), FindPartial(Tokens)
-                if isinstance(Tokens[0], LPart) else FindImpStrict(Tokens)]
+            Tokens.pop(0); V = [List.pop(), FindPartial(Tokens)]
             List.append(Assignment(V)); return List
         else:
             break
     if len(List) == 1:
         if isinstance(List[0], Strict):
             List = List[0]
-        elif isinstance(List[0], Function) or isinstance(List[0], MatchFunction):
+        elif isinstance(List[0], Function) or \
+             isinstance(List[0], MatchFunction):
             List = Partial(List)
     return List
 
@@ -196,8 +196,8 @@ def FindPartial(Tokens):
         elif isinstance(Tokens[0], Func):
             List.append(FindFunction(Tokens))
         elif isinstance(Tokens[0], Assign):
-            Tokens.pop(0); V = [List.pop(), FindPartial(Tokens)
-                if isinstance(Tokens[0], LPart) else FindImpStrict(Tokens)]
+            Tokens.pop(0); V = [List.pop(), FindImpStrict(Tokens) if
+                isinstance(Tokens[0], LParen) else FindPartial(Tokens)]
             List.append(Assignment(V)); return List
         else:
             break
@@ -248,4 +248,5 @@ def RealParse(fname):
     print("------------------------")
     return Stmnts
 
-#RealParse("t1")
+if __name__ == "__main__":
+    RealParse("t1")
