@@ -24,7 +24,10 @@ class Float(Expr):
         return float(Value)
 
 class Symbol(Expr):
-    pass
+    def __hash__(s):
+        return hash(s.Value)
+    def __eq__(s, o):
+        return s.Value == o.Value
 # Lexer Utility
 class LParen(Token):
     def __repr__(s):
@@ -33,7 +36,7 @@ class LParen(Token):
 class RParen(Token):
     def __repr__(s):
         return "RPAREN"
-    
+
 class LPart(Token):
     def __repr__(s):
         return "LPART"
@@ -41,7 +44,7 @@ class LPart(Token):
 class RPart(Token):
     def __repr__(s):
         return "RPART"
-    
+
 class LineBreak(Token):
     def __repr__(s):
         return "_NL"
@@ -100,7 +103,7 @@ class Section(list):
 
 class Partial(Section):
     pass
-    
+
 class Strict(Section):
     pass
 # Ast 2 Classes
@@ -183,7 +186,7 @@ def FindPartial(Tokens):
         List = List[0]
     return List
 # Fuck Comments, Fuck LineBreaks
-def ParseTree0(Tokens):
+def CleanLex(Tokens):
     Array = []
     while Tokens:
         if isinstance(Tokens[0], Comment):
@@ -201,7 +204,7 @@ def ParseTree0(Tokens):
             Array.append(Tokens.pop(0))
     return Array
 # Everything is Either Strict or Partial
-def ParseTree1(Tokens):
+def ParseTree(Tokens):
     Array = []
     while Tokens:
         if not isinstance(Tokens[0], LineBreak):
@@ -210,8 +213,11 @@ def ParseTree1(Tokens):
             Tokens.pop(0)
     return Array
 # Do Stuff
-T0 = ParseTree0(Tokenize(open('code/t2.ex').read()))
-print(T0)
-print("------------------------")
-for Ln in (T1 := ParseTree1(T0)):
-    print(Ln, '\n')
+def RealParse(fname):
+    Tokens = CleanLex(Tokenize(open(f'code/{fname}.ex').read()))
+    print(Tokens)
+    print("------------------------")
+    for Ln in (Stmnts := ParseTree(Tokens)):
+        print(Ln)
+    print("------------------------")
+    return Stmnts

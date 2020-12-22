@@ -1,33 +1,43 @@
-from stdlib import Globals
-from syntax import Parse
-from structs import *
+from lexer import *
+Lines = RealParse("t1")
+
+class EnvS(dict):
+    def __init__(s, Parent = None):
+        super().__init__()
+        s.Parent = Parent
+    def Find(s, Var):
+        if Var in s:
+            return s[Var]
+        if s.Parent != None:
+            return s.Parent.Find(Var)
+        return Var
 
 def Eval(Node, Env):
-    if Node.data == "fn":
-        return Function(Node.children)
-    if Node.data == "strict":
-        Hd, *Xs = [Eval(X, Env) for X in Node.children]
-        print(Hd, Xs)
-        return Hd(*Xs) if Xs else Hd
-    if Node.data == "assign":
-        Left, Right = [Eval(X, Env) for X in Node.children]
-        Env[Left] = Right; return Right
-    if Node.data in ("stmnt", "expr"):
-        return Eval(Node.children[0], Env)
-    if Node.data == "integer":
-        return int(Node.children[0])
-    if Node.data == "symbol":
-        return Symbol(Node.children[0])
-    if Node.data == "string":
-        return Node.children[0]
-    if Node.data == "block":
-        return Node.children
-    print(Node)
+    if isinstance(Node, Strict):
+        if len(Node) > 1:
+            Hd, *Bdy = [Eval(x, Env) for x in Node]
+            return Hd(*Bdy)
+        else:
+            return Eval(Node[0], Env)
+    if isinstance(Node, Function):
+        Parts = [Eval(x, Env) for x in Node]
+    if isinstance(Node, Assignment):
+        Left, Right = [Eval(x, Env) for x in Node]
+        Env[Left] = Right
+    if isinstance(Node, Symbol):
+        return Env.Find(Node)
+    if isinstance(Node, Integer):
+        return Node.Value
+    if isinstance(Node, Float):
+        return Node.Value
+    if isinstance(Node, String):
+        return Node.Value
 
-pp = Parse("t1.ex")
-print(len(pp.pretty()), pp.pretty())
-# Evaluate Program
-Value, Env = None, EnvS()
-for Stmnt in pp.children:
-    Value = Eval(Stmnt, Env)
-print("sb>", Value, Env)
+Globals, V = EnvS(), None
+def Std_Puts(*xs):
+    print(*xs)
+    return xs if len(xs) > 1 else xs[0]
+Globals[Symbol('puts')] = Std_Puts
+for Stmnt in Lines:
+    V = Eval(Stmnt, Globals)
+print(">>>", V)
