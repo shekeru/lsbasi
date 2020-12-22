@@ -68,17 +68,22 @@ class End(Token):
 class Func(Token):
     def __repr__(s):
         return "LAMBDA"
+
+class Elfn(Token):
+    def __repr__(s):
+        return "ELSEFN"
 # Lexing Rules
 Starts = r'(?![;\=\(\[\d])'
 Ends = r'(?<![;\)\]])'
 Lexer = [
     (r'#', Comment),
-    (r"=", Assign), (r"fn", Func),
+    (r"=", Assign),
+    (r"fn", Func), (r"elfn", Elfn),
     (r"->", Start), (r"end", End),
     (r"\[", LPart), (r"\]", RPart),
     (r"\(", LParen), (r"\)", RParen),
     (r'[\r\n]+', LineBreak),
-    (r'"[\S\s]+"', String),
+    (r'"(?:[^\\"]|\\.)*"', String),
     (r'\-?\d+\.\d+', Float),
     (r'\-?\d+', Integer),
     (Starts+r'\S+'+Ends, Symbol),
@@ -116,7 +121,13 @@ class Assignment(Section):
 class StmntBlock(Section):
     pass
 
+class MatchFunction(Section):
+    pass
+
 class Function(Section):
+    pass
+
+class Match(Section):
     pass
 # AST 0 Functions
 def ChewLines(Tokens):
@@ -127,17 +138,20 @@ def FindComment(Tokens):
         Tokens.pop(0)
 # Ast 1 Functions
 def FindFunction(Tokens):
-    Tokens.pop(0); ChewLines(Tokens)
-    List, Body = Function([]), StmntBlock([])
-    while Tokens and isinstance(Tokens[0], Symbol):
-        List.append(Tokens.pop(0))
-    ChewLines(Tokens)
-    if Tokens and isinstance(Tokens.pop(0), Start):
-        ChewLines(Tokens)
-        while Tokens and not isinstance(Tokens[0], End):
-            Body.append(FindImpStrict(Tokens)); ChewLines(Tokens);
-        List.append(Body); ChewLines(Tokens); Tokens.pop(0)
-    return List
+    Composite = MatchFunction([])
+    while Tokens:
+        if not isinstance(Tokens[0], End):
+            List, Body = Function([]), StmntBlock([]); Tokens.pop(0)
+            List += FindImpStrict(Tokens); ChewLines(Tokens)
+            if Tokens and isinstance(Tokens.pop(0), Start):
+                ChewLines(Tokens)
+                while Tokens and not (isinstance(Tokens[0], End) or isinstance(Tokens[0], Elfn)):
+                    Body.append(FindImpStrict(Tokens)); ChewLines(Tokens);
+                List.append(Body); ChewLines(Tokens); Composite.append(List)
+        else:
+            Tokens.pop(0)
+            break
+    return Composite if len(Composite) > 1 else Composite[0]
 
 def FindImpStrict(Tokens):
     List = Strict([])
@@ -158,8 +172,11 @@ def FindImpStrict(Tokens):
             List.append(Assignment(V)); return List
         else:
             break
-    if len(List) == 1 and isinstance(List[0], Strict):
-        List = List[0]
+    if len(List) == 1:
+        if isinstance(List[0], Strict):
+            List = List[0]
+        elif isinstance(List[0], Function) or isinstance(List[0], MatchFunction):
+            List = Partial(List)
     return List
 
 def FindPartial(Tokens):
@@ -176,6 +193,8 @@ def FindPartial(Tokens):
             Tokens.pop(0)
             List.append(FindPartial(Tokens))
             Tokens.pop(0)
+        elif isinstance(Tokens[0], Func):
+            List.append(FindFunction(Tokens))
         elif isinstance(Tokens[0], Assign):
             Tokens.pop(0); V = [List.pop(), FindPartial(Tokens)
                 if isinstance(Tokens[0], LPart) else FindImpStrict(Tokens)]
@@ -212,12 +231,21 @@ def ParseTree(Tokens):
         else:
             Tokens.pop(0)
     return Array
+# Wrap Assignments in Partials
+def PostParse(Array):
+    for I in range(len(Array)):
+        Ln = Array[I]
+        if isinstance(Ln, Strict) and isinstance(Ln[0], Assignment):
+            Array[I] = Partial([Ln[0]])
+    return Array
 # Do Stuff
 def RealParse(fname):
     Tokens = CleanLex(Tokenize(open(f'code/{fname}.ex').read()))
     print(Tokens)
     print("------------------------")
-    for Ln in (Stmnts := ParseTree(Tokens)):
+    for Ln in (Stmnts := PostParse(ParseTree(Tokens))):
         print(Ln)
     print("------------------------")
     return Stmnts
+
+#RealParse("t1")
