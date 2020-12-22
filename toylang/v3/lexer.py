@@ -74,7 +74,7 @@ Lexer = [
     (r"->", Start), (r"end", End),
     (r"\[", LPart), (r"\]", RPart),
     (r"\(", LParen), (r"\)", RParen),
-    (r'[;\r\n]+', LineBreak),
+    (r'[\r\n]+', LineBreak),
     (r'"[\S\s]+"', String),
     (r'\-?\d+\.\d+', Float),
     (r'\-?\d+', Integer),
@@ -115,14 +115,14 @@ class StmntBlock(Section):
 
 class Function(Section):
     pass
-# AST 1 Functions
+# AST 0 Functions
 def ChewLines(Tokens):
     while Tokens and isinstance(Tokens[0], LineBreak):
         Tokens.pop(0)
 def FindComment(Tokens):
     while Tokens and not isinstance(Tokens[0], LineBreak):
         Tokens.pop(0)
-
+# Ast 1 Functions
 def FindFunction(Tokens):
     Tokens.pop(0); ChewLines(Tokens)
     List, Body = Function([]), StmntBlock([])
@@ -131,9 +131,8 @@ def FindFunction(Tokens):
     ChewLines(Tokens)
     if Tokens and isinstance(Tokens.pop(0), Start):
         ChewLines(Tokens)
-        while Tokens and not isinstance(Tokens[0], End) \
-            and not isinstance(Tokens[0], LineBreak):
-            Body.append(FindImpStrict(Tokens))
+        while Tokens and not isinstance(Tokens[0], End):
+            Body.append(FindImpStrict(Tokens)); ChewLines(Tokens);
         List.append(Body); ChewLines(Tokens); Tokens.pop(0)
     return List
 
@@ -148,71 +147,71 @@ def FindImpStrict(Tokens):
             Tokens.pop(0)
         elif isinstance(Tokens[0], LPart):
             List.append(FindPartial(Tokens))
+        elif isinstance(Tokens[0], Func):
+            List.append(FindFunction(Tokens))
+        elif isinstance(Tokens[0], Assign):
+            Tokens.pop(0); V = [List.pop(), FindPartial(Tokens)
+                if isinstance(Tokens[0], LPart) else FindImpStrict(Tokens)]
+            List.append(Assignment(V)); return List
         else:
-            if isinstance(List[0], Strict) and len(List) == 1:
-                List = List[0]
-            return List
+            break
+    if len(List) == 1 and isinstance(List[0], Strict):
+        List = List[0]
+    return List
 
 def FindPartial(Tokens):
-    List = Partial([]); Tokens.pop(0)
+    List = Partial([])
     while Tokens:
-        if isinstance(Tokens[0], Expr) or isinstance(Tokens[0], LParen):
-            List.append(Partial(FindImpStrict(Tokens)))
-        elif isinstance(Tokens[0], RPart):
-            if isinstance(List[0], Partial) and len(List) == 1:
-                List = List[0]
-            Tokens.pop(0); return List
+        if isinstance(Tokens[0], Expr):
+            List.append(Tokens.pop(0))
+        elif isinstance(Tokens[0], LParen):
+            if len(V := FindImpStrict(Tokens)) > 1:
+                List += V
+            else:
+                List.append(V)
+        elif isinstance(Tokens[0], LPart):
+            Tokens.pop(0)
+            List.append(FindPartial(Tokens))
+            Tokens.pop(0)
+        elif isinstance(Tokens[0], Assign):
+            Tokens.pop(0); V = [List.pop(), FindPartial(Tokens)
+                if isinstance(Tokens[0], LPart) else FindImpStrict(Tokens)]
+            List.append(Assignment(V)); return List
         else:
-            print("Error, Missing ]")
-# Identify Stricts/Partials, Remove Comments
-def ParseTree1(Tokens):
+            break
+    if len(List) == 1 and isinstance(List[0], Partial):
+        List = List[0]
+    return List
+# Fuck Comments, Fuck LineBreaks
+def ParseTree0(Tokens):
     Array = []
     while Tokens:
-        # Expressions
-        if isinstance(Tokens[0], Expr) or isinstance(Tokens[0], LParen):
-            Array.append(FindImpStrict(Tokens))
-        elif isinstance(Tokens[0], LPart):
-            Array.append(FindPartial(Tokens))
-        # Functions
-        elif isinstance(Tokens[0], Func):
-            Array.append(FindFunction(Tokens))
-        # Ignore These
-        elif isinstance(Tokens[0], Comment):
+        if isinstance(Tokens[0], Comment):
             FindComment(Tokens)
         elif isinstance(Tokens[0], LineBreak):
             LB = Tokens.pop(0)
             if Array and not isinstance(Array[-1], LineBreak) \
                and not isinstance(Array[-1], Assign):
                 Array.append(LB)
-        # Disregard LineBreaks
         elif isinstance(Tokens[0], Assign):
             if Array and isinstance(Array[-1], LineBreak):
                 Array.pop()
             Array.append(Tokens.pop(0))
-        # Leave These
         else:
             Array.append(Tokens.pop(0))
     return Array
-# Combine Stricts/Partials into Statements, Remove Lines?
-def FindStatement(Tokens):
-    List = Statement([])
-    while Tokens and isinstance(Tokens[0], Section):
-        List.append(Tokens.pop(0))
-    return List
-def ParseTree2(Tokens):
+# Everything is Either Strict or Partial
+def ParseTree1(Tokens):
     Array = []
     while Tokens:
-        if isinstance(Tokens[0], Section):
-            Array.append(FindStatement(Tokens))
+        if not isinstance(Tokens[0], LineBreak):
+            Array.append(FindImpStrict(Tokens))
         else:
-            Array.append(Tokens.pop(0))
+            Tokens.pop(0)
     return Array
 # Do Stuff
-T0 = Tokenize(open('code/t2.ex').read())
+T0 = ParseTree0(Tokenize(open('code/t2.ex').read()))
 print(T0)
 print("------------------------")
 for Ln in (T1 := ParseTree1(T0)):
-    print(Ln)
-print("------------------------")
-#for Ln in (T2 := ParseTree2(T1)):
-    #print(Ln)
+    print(Ln, '\n')
