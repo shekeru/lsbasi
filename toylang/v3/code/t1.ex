@@ -1,14 +1,14 @@
-a = 7
-;const = fn a b -> a end
+;b = a = 7
+;const = fn a b -> b a end
 ;just_a = [const a]
-;just_a 2
+;const b a
 
 ;b = needful sir
-;meme = if check a ->
-;  "sir" + "pls"
-;elif if gay -> 1 end
-;  (bite me)
-;  oh shit
-;else b ->
-;  "gay"
-;end
+if check a ->
+  concat "sir" "pls"
+elif if gay -> 1 end
+  (bite me)
+  oh shit
+else b ->
+  "gay"
+end

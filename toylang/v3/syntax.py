@@ -4,15 +4,15 @@ syntax = Lark(r"""
     start: _NL* stmnt*
     block: (("->" _NL*) | _NL+) stmnt*
     assign: symbol _NL* "=" _NL* stmnt
-    stmnt: (assign | fn | if | strict | partial) _NL*
+    stmnt: (assign | fn | if | strict) _NL*
     fn: "fn" _NL* symbol* block "end"
     if: "if" _NL* stmnt block elif* else? "end"
     elif: "elif" _NL* stmnt block
     else: "else" _NL* stmnt block
     partial: "[" expr* "]"
-    expr: string | integer | symbol
-    strict: (expr+ _NL) | "(" expr* ")" | expr+ "->" | expr
-    symbol: /(?!([~;\(\[=]|if|->|end))\S+(?<![\)\]])/
+    strict: expr+ | "(" expr* ")"
+    expr: string | integer | symbol | strict
+    symbol: /(?!([~;\(\[=]|fn|if|->|end))\S+(?<![\)\]])/
     string: ESCAPED_STRING
     integer: SIGNED_INT
     %import common.NEWLINE -> _NL
