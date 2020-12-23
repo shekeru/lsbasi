@@ -29,15 +29,15 @@ class Symbol(Literal):
     def __hash__(s):
         return hash(s.Value)
     def __eq__(s, o):
+        if not isinstance(o, Symbol):
+            return False
         return s.Value == o.Value
 class String(Literal):
     def Read(s, Value):
         return Value[1:-1]
-
 class Integer(Literal):
     def Read(s, Value):
         return int(Value)
-
 class Float(Literal):
     def Read(s, Value):
         return float(Value)
