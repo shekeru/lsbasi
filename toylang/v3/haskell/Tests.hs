@@ -16,3 +16,4 @@ check x str valid = pp x case run str of
 tests = do
   check 1 "show \"Hello World\"" [Expression [Symbol "show", Literal (String "Hello World")]]
   check 2 "b >> a, *b = 3" [Binding (Variable "b") (Partial (Expression [Symbol "a"])),Binding (Reference (Variable "b")) (Strict (Expression [Literal (Integer 3)]))]
+  check 3 (unlines ["fib >> fn x y", ":: 0, y -> 0", ":: x, 1 -> 1", ":: else ->", "add (fib (add x -1)) (fib (add x -2))", ";;"]) []

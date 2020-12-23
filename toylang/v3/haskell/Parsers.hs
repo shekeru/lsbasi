@@ -9,21 +9,48 @@ import Text.Parser.LookAhead
 import Text.Parser.Token
 import Text.Parser.Char
 import Data.Function
+import Debug.Trace
 import AST
 
 block :: Parser Block
-block = sepEndBy1 expr $some (token $char ',') <|> some newline
+block = sepEndBy expr $_NL <|> some (chew $char ',')
 
 reduceExpr :: Expr -> Expr
 reduceExpr (Expression [x@(Expression _)]) = reduceExpr x
 reduceExpr xs = xs
 
 expr :: Parser Expr
-expr = reduceExpr <$> do try (bind)
+expr = reduceExpr <$> do
+  try (bind)
   <|> (symbol "_" >> pure TrapValue)
   <|> Expression <$> (try.parens.some.token) expr
-  <|> Expression <$> flip sepBy1 (char ' ')
-    (Literal <$> literal <|> Symbol <$> label)
+  <|> Expression <$> flip sepEndBy1 (char ' ')
+    (try (Literal <$> literal <|> Symbol <$> label))
+
+fnFull :: Parser Expr
+fnFull = do
+  chew (symbol "fn") <* _NL
+  args <- sepEndBy arg (char ' ') <* _NL
+  parts <- some fnPart
+  _NL *> chew (symbol ";;")
+  pure $Function args parts
+
+fnPart :: Parser FnCase
+fnPart = do
+  _NL *> chew (symbol "::")
+  def <- optional (chew $symbol "else")
+  args <- case def of
+    Nothing -> Just <$> try block
+    Just _ -> pure Nothing
+  chew (symbol "->")
+  FnGuard args <$> block
+
+arg :: Parser Args
+arg = do
+  ref <- optional (char '*')
+  case ref of
+    Just _ -> VarArgs <$> label
+    Nothing -> Arg <$> label
 
 lval :: Parser LVal
 lval = do
@@ -44,7 +71,8 @@ label = some (oneOf validChars)
 validChars = ['a'..'z'] <> ['A'..'Z'] <> ['0'..'9']
 
 literal :: Parser Types
-literal = (symbol "nil" <|> symbol "()" >> pure Nil)
+literal = try do
+  (symbol "nil" <|> symbol "()" >> pure Nil)
   <|> Float <$> float
   <|> Integer <$> integer'
   <|> Character <$> charLiteral
@@ -57,3 +85,7 @@ float = try do
   case minus of
     Just _ -> negate <$> double
     Nothing -> double
+
+chew :: Parser a -> Parser a
+chew x = try spaces *> x <* try spaces
+_NL = many newline
